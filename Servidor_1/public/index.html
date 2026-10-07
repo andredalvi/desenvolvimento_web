@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Cardápio</title>
+</head>
+<body>
+  <h1>Cardápio</h1>
+  <a href="pedidos.html">Ver pedidos abertos</a>
+
+  <p id="mensagem"></p>
+
+  <table border="1">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Produto</th>
+        <th>Preço</th>
+        <th>Estoque</th>
+        <th>Quantidade</th>
+      </tr>
+    </thead>
+    <tbody id="tabela"></tbody>
+  </table>
+
+  <p>Nome do cliente: <input type="text" id="nome"></p>
+  <button onclick="enviarPedido()">Enviar pedido</button>
+
+  <script>
+    //endereço do servidor 2 (a pagina nunca fala com o servidor 3)
+    const API = "http://localhost:3002";
+
+    //guarda os produtos que vieram do servidor 2
+    let produtos = [];
+
+    //mostra uma mensagem na tela
+    function mostrarMensagem(texto) {
+      document.getElementById("mensagem").innerText = texto;
+    }
+
+    //busca os produtos no servidor 2 e monta a tabela
+    async function carregarProdutos() {
+      try {
+        const resposta = await fetch(API + "/produtos");
+        const dados = await resposta.json();
+
+        if (resposta.status !== 200) {
+          mostrarMensagem("Erro: " + dados.erro);
+          return;
+        }
+
+        produtos = dados;
+        let linhas = "";
+
+        for (let i = 0; i < produtos.length; i++) {
+          linhas = linhas +
+            "<tr>" +
+            "<td>" + produtos[i].CodProduto + "</td>" +
+            "<td>" + produtos[i].Nome + "</td>" +
+            "<td>R$ " + produtos[i].Preco.toFixed(2) + "</td>" +
+            "<td>" + produtos[i].Estoque + "</td>" +
+            "<td><input type='number' min='0' value='0' id='qtd" + produtos[i].CodProduto + "'></td>" +
+            "</tr>";
+        }
+
+        document.getElementById("tabela").innerHTML = linhas;
+      }
+      catch (erro) {
+        mostrarMensagem("Erro: servidor de pedidos fora do ar.");
+      }
+    }
+
+    //monta o pedido com o que foi escolhido e manda para o servidor 2
+    async function enviarPedido() {
+      const itens = [];
+
+      //pega a quantidade digitada de cada produto
+      for (let i = 0; i < produtos.length; i++) {
+        const qtd = Number(document.getElementById("qtd" + produtos[i].CodProduto).value);
+        if (qtd > 0) {
+          itens.push({ CodProduto: produtos[i].CodProduto, Qtd: qtd });
+        }
+      }
+
+      const pedido = {
+        NomeCliente: document.getElementById("nome").value,
+        Itens: itens
+      };
+
+      try {
+        const resposta = await fetch(API + "/pedidos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(pedido)
+        });
+        const dados = await resposta.json();
+
+        if (resposta.status !== 201) {
+          mostrarMensagem("Erro: " + dados.erro);
+          return;
+        }
+
+        mostrarMensagem("Pedido " + dados.Numero + " registrado! Total: R$ " + dados.Total.toFixed(2));
+        //recarrega a tabela para mostrar o estoque atualizado
+        carregarProdutos();
+      }
+      catch (erro) {
+        mostrarMensagem("Erro: servidor de pedidos fora do ar.");
+      }
+    }
+
+    //carrega os produtos quando a pagina abre
+    carregarProdutos();
+  </script>
+</body>
+</html>

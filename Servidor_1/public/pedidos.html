@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Pedidos</title>
+</head>
+<body>
+  <h1>Pedidos abertos</h1>
+  <a href="index.html">Voltar ao cardápio</a>
+
+  <p><button onclick="carregarPedidos()">Atualizar</button></p>
+
+  <p id="mensagem"></p>
+
+  <div id="lista"></div>
+
+  <script>
+    //endereço do servidor 2 (a pagina nunca fala com o servidor 3)
+    const API = "http://localhost:3002";
+
+    //mostra uma mensagem na tela
+    function mostrarMensagem(texto) {
+      document.getElementById("mensagem").innerText = texto;
+    }
+
+    //busca os pedidos abertos no servidor 2 e mostra na tela
+    async function carregarPedidos() {
+      try {
+        const resposta = await fetch(API + "/pedidos");
+        const pedidos = await resposta.json();
+
+        let html = "";
+
+        if (pedidos.length === 0) {
+          html = "<p>Nenhum pedido aberto.</p>";
+        }
+
+        for (let i = 0; i < pedidos.length; i++) {
+          html = html +
+            "<h3>Pedido " + pedidos[i].Numero + " - " + pedidos[i].NomeCliente + "</h3>" +
+            "<p>Total: R$ " + pedidos[i].Total.toFixed(2) + "</p>" +
+            "<table border='1'>" +
+            "<tr><th>Código</th><th>Produto</th><th>Preço</th><th>Quantidade</th></tr>";
+
+          //uma linha para cada item do pedido
+          for (let j = 0; j < pedidos[i].Itens.length; j++) {
+            const item = pedidos[i].Itens[j];
+            html = html +
+              "<tr>" +
+              "<td>" + item.CodProduto + "</td>" +
+              "<td>" + item.Nome + "</td>" +
+              "<td>R$ " + item.Preco.toFixed(2) + "</td>" +
+              "<td>" + item.Qtd + "</td>" +
+              "</tr>";
+          }
+
+          html = html + "</table>" +
+            "<p><button onclick='fecharPedido(" + pedidos[i].Numero + ")'>Fechar pedido</button></p>";
+        }
+
+        document.getElementById("lista").innerHTML = html;
+        mostrarMensagem("");
+      }
+      catch (erro) {
+        mostrarMensagem("Erro: servidor de pedidos fora do ar.");
+      }
+    }
+
+    //fecha o pedido no servidor 2 e atualiza a lista
+    async function fecharPedido(numero) {
+      try {
+        const resposta = await fetch(API + "/pedidos/" + numero + "/fechar", { method: "POST" });
+        const dados = await resposta.json();
+
+        if (resposta.status !== 200) {
+          mostrarMensagem("Erro: " + dados.erro);
+          return;
+        }
+
+        carregarPedidos();
+      }
+      catch (erro) {
+        mostrarMensagem("Erro: servidor de pedidos fora do ar.");
+      }
+    }
+
+    //carrega os pedidos quando a pagina abre
+    carregarPedidos();
+  </script>
+</body>
+</html>
