@@ -127,6 +127,26 @@ servidor_2.post("/pedidos", async (requisicao, resposta) => {
   resposta.status(201).json(pedido);
 });
 
+//? POST /reposicao -> recebe { "Itens": [ { "CodProduto": 1, "Qtd": 5 } ] } e repassa para o servidor 3
+servidor_2.post("/reposicao", async (requisicao, resposta) => {
+  console.log("[Servidor 2] POST /reposicao");
+
+  try {
+    const respostaReposicao = await fetch("http://localhost:8080/reposicao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ Itens: requisicao.body.Itens }),
+    });
+    const dados = await respostaReposicao.json();
+
+    resposta.json(dados);
+  }
+  catch (erro) {
+    //!cai aqui se o servidor 3 estiver fora do ar
+    resposta.status(500).json({ erro: "Servidor de estoque fora do ar." });
+  }
+});
+
 //? GET /pedidos -> lista os pedidos abertos
 servidor_2.get("/pedidos", (requisicao, resposta) => {
   console.log("[Servidor 2] GET /pedidos");

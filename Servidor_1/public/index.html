@@ -25,6 +25,7 @@
 
   <p>Nome do cliente: <input type="text" id="nome"></p>
   <button onclick="enviarPedido()">Enviar pedido</button>
+  <button onclick="reporEstoque()">Repor estoque</button>
 
   <script>
     //api que conecta o servidor 2
@@ -101,6 +102,40 @@
         }
 
         mostrarMensagem("Pedido " + dados.Numero + " registrado! Total: R$ " + dados.Total.toFixed(2));
+        //recarrega a tabela para mostrar o estoque atualizado
+        carregarProdutos();
+      }
+      catch (erro) {
+        mostrarMensagem("Erro: servidor de pedidos fora do ar.");
+      }
+    }
+
+    //manda as quantidades digitadas para o servidor 2 somar no estoque
+    async function reporEstoque() {
+      const itens = [];
+
+      //pega a quantidade digitada de cada produto
+      for (let i = 0; i < produtos.length; i++) {
+        const qtd = Number(document.getElementById("qtd" + produtos[i].CodProduto).value);
+        if (qtd > 0) {
+          itens.push({ CodProduto: produtos[i].CodProduto, Qtd: qtd });
+        }
+      }
+
+      try {
+        const resposta = await fetch(API + "/reposicao", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ Itens: itens })
+        });
+        const dados = await resposta.json();
+
+        if (resposta.status !== 200) {
+          mostrarMensagem("Erro: " + dados.erro);
+          return;
+        }
+
+        mostrarMensagem(dados.mensagem);
         //recarrega a tabela para mostrar o estoque atualizado
         carregarProdutos();
       }
